@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Night Loader — скачивай ночью, отдыхай утром</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #090b12;
+    --bg-1: #0e1220;
+    --bg-2: #141a2e;
+    --ink: #e7ecf6;
+    --ink-dim: #939cb5;
+    --ink-faint: #626a85;
+    --frost: rgba(233, 238, 250, 0.06);
+    --frost-strong: rgba(233, 238, 250, 0.10);
+    --stroke: rgba(233, 238, 250, 0.10);
+    --moon: #a9c9ff;
+    --moon-soft: #cfe0ff;
+    --aurora: #7ee0c3;
+    --radius-lg: 28px;
+    --radius-md: 18px;
+    --radius-sm: 12px;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); scroll-behavior: smooth; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: radial-gradient(ellipse 120% 80% at 50% -10%, var(--bg-2), var(--bg-0) 60%);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  h1, h2, h3, .display {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  #snow {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+  #orb {
+    position: fixed;
+    top: 0; left: 0;
+    width: 34px; height: 34px;
+    margin: -17px 0 0 -17px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffffff, #dde6f5 55%, #aebbd6 100%);
+    box-shadow: 0 0 22px 6px rgba(255,255,255,0.35), 0 0 60px 18px rgba(200,215,255,0.18);
+    pointer-events: none;
+    z-index: 0;
+    will-change: transform;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  @media (hover: none) {
+    #orb { display: none; }
+  }
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Nav */
+  nav {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 28px 24px 0;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--ink);
+  }
+  .brand-mark {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(155deg, var(--moon-soft), var(--aurora) 130%);
+    display: grid; place-items: center;
+    box-shadow: 0 0 24px rgba(169, 201, 255, 0.35);
+  }
+  .brand-mark svg { width: 16px; height: 16px; }
+  .nav-langs {
+    display: flex; gap: 6px;
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+  }
+  .nav-langs span { padding: 4px 9px; border: 1px solid var(--stroke); border-radius: 999px; }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 108px 0 64px;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--moon-soft);
+    background: var(--frost);
+    border: 1px solid var(--stroke);
+    padding: 7px 16px;
+    border-radius: 999px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    margin-bottom: 28px;
+  }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--aurora); box-shadow: 0 0 8px var(--aurora); }
+  .hero h1 {
+    font-size: clamp(2.4rem, 6vw, 4.2rem);
+    line-height: 1.06;
+    max-width: 15ch;
+    margin: 0 auto;
+    background: linear-gradient(180deg, #ffffff 10%, var(--ink) 60%, var(--ink-dim));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p {
+    max-width: 46ch;
+    margin: 24px auto 0;
+    color: var(--ink-dim);
+    font-size: 1.08rem;
+  }
+  .cta-row { margin-top: 44px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .cta {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 38px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.06rem;
+    font-weight: 600;
+    color: #08101f;
+    background: linear-gradient(135deg, var(--moon-soft), var(--aurora));
+    border-radius: 999px;
+    text-decoration: none;
+    box-shadow: 0 18px 50px -14px rgba(126, 224, 195, 0.45), 0 0 0 1px rgba(255,255,255,0.15) inset;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .cta:hover { transform: translateY(-2px); box-shadow: 0 22px 60px -12px rgba(126, 224, 195, 0.55), 0 0 0 1px rgba(255,255,255,0.2) inset; }
+  .cta:focus-visible, a:focus-visible, button:focus-visible { outline: 2px solid var(--moon-soft); outline-offset: 3px; }
+  .cta svg { width: 18px; height: 18px; }
+  .cta-note { font-size: 0.82rem; color: var(--ink-faint); }
+
+  .hero-visual {
+    margin: 72px auto 0;
+    max-width: 720px;
+    padding: 22px;
+    border-radius: var(--radius-lg);
+    background: var(--frost);
+    border: 1px solid var(--stroke);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 40px 100px -40px rgba(0,0,0,0.6);
+  }
+  .hero-visual-inner {
+    border-radius: var(--radius-md);
+    background: linear-gradient(160deg, rgba(20,26,46,0.9), rgba(9,11,18,0.9));
+    border: 1px solid var(--stroke);
+    padding: 26px 24px;
+    text-align: left;
+  }
+  .hv-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .hv-title { font-size: 0.92rem; color: var(--ink); font-weight: 500; }
+  .hv-badge { font-size: 0.72rem; color: var(--aurora); background: rgba(126,224,195,0.1); padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(126,224,195,0.25); }
+  .hv-bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; margin-bottom: 10px; }
+  .hv-bar > div { height: 100%; width: 63%; border-radius: 999px; background: linear-gradient(90deg, var(--moon-soft), var(--aurora)); }
+  .hv-meta { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--ink-faint); }
+
+  /* Section shared */
+  section { position: relative; z-index: 1; padding: 84px 0; }
+  .section-head { max-width: 52ch; margin-bottom: 48px; }
+  .section-head h2 { font-size: clamp(1.7rem, 3.4vw, 2.3rem); }
+  .section-head p { color: var(--ink-dim); margin-top: 12px; font-size: 1.02rem; }
+
+  /* About */
+  .about-card {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 36px;
+    padding: 40px;
+    border-radius: var(--radius-lg);
+    background: var(--frost);
+    border: 1px solid var(--stroke);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    align-items: center;
+  }
+  .about-card p { color: var(--ink-dim); font-size: 1.02rem; }
+  .about-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .stat { padding: 18px; border-radius: var(--radius-sm); background: var(--frost-strong); border: 1px solid var(--stroke); }
+  .stat b { display: block; font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; color: var(--moon-soft); }
+  .stat span { font-size: 0.82rem; color: var(--ink-faint); }
+
+  /* Features */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .grid .card:nth-child(1) { grid-column: span 2; }
+  .grid .card:nth-child(4) { grid-column: span 2; }
+  .card {
+    padding: 30px;
+    border-radius: var(--radius-md);
+    background: var(--frost);
+    border: 1px solid var(--stroke);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: border-color 0.25s ease, background 0.25s ease;
+  }
+  .card:hover { border-color: rgba(169,201,255,0.35); background: var(--frost-strong); }
+  .card-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(155deg, rgba(169,201,255,0.18), rgba(126,224,195,0.12));
+    border: 1px solid var(--stroke);
+    display: grid; place-items: center;
+    margin-bottom: 18px;
+  }
+  .card-icon svg { width: 20px; height: 20px; stroke: var(--moon-soft); }
+  .card h3 { font-size: 1.08rem; margin-bottom: 8px; }
+  .card p { color: var(--ink-dim); font-size: 0.95rem; margin: 0; }
+
+  /* Langs */
+  .langs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 28px;
+    border-radius: var(--radius-md);
+    background: var(--frost);
+    border: 1px solid var(--stroke);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    justify-content: center;
+  }
+  .lang-chip { display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: 999px; background: var(--frost-strong); border: 1px solid var(--stroke); font-size: 0.92rem; color: var(--ink); }
+
+  /* Final CTA */
+  .final {
+    text-align: center;
+    padding: 56px 40px;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(160deg, rgba(169,201,255,0.08), rgba(126,224,195,0.05));
+    border: 1px solid var(--stroke);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .final h2 { font-size: clamp(1.6rem, 3.2vw, 2.1rem); max-width: 20ch; margin: 0 auto; }
+  .final p { color: var(--ink-dim); margin: 14px auto 0; max-width: 40ch; }
+
+  footer {
+    position: relative; z-index: 1;
+    padding: 40px 0 calc(40px + env(safe-area-inset-bottom, 0px));
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: 1fr; }
+    .grid .card:nth-child(1), .grid .card:nth-child(4) { grid-column: span 1; }
+    .about-card { grid-template-columns: 1fr; }
+    .nav-langs { display: none; }
+    .hero { padding-top: 84px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="snow"></canvas>
+<div id="orb"></div>
+
+<nav>
+  <div class="brand">
+    <span class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" fill="#08101f"/></svg>
+    </span>
+    Night Loader
+  </div>
+  <div class="nav-langs"><span>RU</span><span>EN</span><span>ES</span><span>中文</span></div>
+</nav>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow"><span class="dot"></span>Бесплатно · Steam & Epic Games</div>
+    <h1>Скачивай тяжёлые игры ночью. Просыпайся — а ПК уже спит.</h1>
+    <p>Night Loader следит за загрузкой в Steam и Epic Games и сам выключает, усыпляет или перезагружает компьютер, когда всё скачано. Вам остаётся только лечь спать.</p>
+    <div class="cta-row">
+      <a href="https://drive.google.com/file/d/1Y-TEYRMHTdmaK7aut74Fcc65HH-Z7Q2_/view?usp=sharing" class="cta" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#08101f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"/></svg>
+        Скачать Night Loader бесплатно
+      </a>
+      <span class="cta-note">Windows · без рекламы и подписок</span>
+    </div>
+
+  </header>
+
+  <section id="about">
+    <div class="about-card">
+      <div>
+        <h2 style="font-size: clamp(1.6rem, 3vw, 2.1rem); margin-bottom: 14px;">Что такое Night Loader</h2>
+        <p>Умная бесплатная утилита для геймеров, которая берёт на себя ночные загрузки. Пока тяжёлые игры качаются из Steam и Epic Games, Night Loader тихо следит за процессом — а когда всё готово, сам решает, что делать с компьютером: выключить, усыпить или перезагрузить.</p>
+      </div>
+      <div class="about-stats">
+        <div class="stat"><b>2</b><span>магазина под наблюдением</span></div>
+        <div class="stat"><b>3</b><span>сценария завершения</span></div>
+        <div class="stat"><b>4</b><span>языка интерфейса</span></div>
+        <div class="stat"><b>0 ₽</b><span>стоимость</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="section-head">
+      <h2>Всё для загрузки, о которой не нужно думать</h2>
+      <p>Night Loader берёт рутину на себя — от отслеживания загрузки до последнего щелчка выключателем.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg></div>
+        <h3>Steam и Epic Games из коробки</h3>
+        <p>Night Loader сам находит активную загрузку по ID игры и умно отслеживает удаление временных папок — это и есть сигнал, что скачивание завершено, без лишних догадок.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10l4 2"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <h3>Гибкие действия по окончании</h3>
+        <p>Выберите, что случится, когда загрузка закончится: полное выключение, спокойный сон или перезагрузка. Решаете вы — Night Loader просто выполняет.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></div>
+        <h3>Забота о вашем сне</h3>
+        <p>Монитор можно погасить прямо во время закачки — экран перестаёт светить в темноте, а загрузка продолжается в фоне без остановки.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 9h.01M15 9h.01M9 15h6"/></svg></div>
+        <h3>Полная кастомизация</h3>
+        <p>Встроенный таймер перед действием, звуковое оповещение о завершении и автоматическое сворачивание в трей — программа настраивается под ваш ритм, а не наоборот.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12a7 7 0 0 1 14 0c0 4-2 5-2 7H7c0-2-2-3-2-7Z"/><path d="M10 21h4"/></svg></div>
+        <h3>Атмосферный интерфейс</h3>
+        <p>Красивый анимированный фон с падающим снегом создаёт уютное ночное настроение прямо в приложении — таким же, как на этой странице.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="langs">
+    <div class="section-head" style="text-align:center; margin: 0 auto 32px;">
+      <h2>Говорит на вашем языке</h2>
+    </div>
+    <div class="langs">
+      <div class="lang-chip">🇷🇺 Русский</div>
+      <div class="lang-chip">🇬🇧 English</div>
+      <div class="lang-chip">🇪🇸 Español</div>
+      <div class="lang-chip">🇨🇳 中文</div>
+    </div>
+  </section>
+
+  <section id="cta">
+    <div class="final">
+      <h2>Поставьте загрузку на ночь — а утром просто проснитесь</h2>
+      <p>Night Loader бесплатен, лёгок и всегда готов подождать вместо вас.</p>
+      <div class="cta-row">
+        <a href="https://drive.google.com/file/d/1Y-TEYRMHTdmaK7aut74Fcc65HH-Z7Q2_/view?usp=sharing" class="cta" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#08101f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"/></svg>
+          Скачать Night Loader бесплатно
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer>© 2026 Night Loader · Сделано для тех, кто качает ночью</footer>
+
+<script>
+(function () {
+  var canvas = document.getElementById('snow');
+  var ctx = canvas.getContext('2d');
+  var flakes = [];
+  var count = 90;
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function makeFlake() {
+    return {
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 2.2 + 0.6,
+      speed: Math.random() * 0.6 + 0.25,
+      drift: Math.random() * 0.6 - 0.3,
+      sway: Math.random() * Math.PI * 2,
+      swaySpeed: Math.random() * 0.015 + 0.005,
+      opacity: Math.random() * 0.5 + 0.3
+    };
+  }
+  for (var i = 0; i < count; i++) flakes.push(makeFlake());
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (var i = 0; i < flakes.length; i++) {
+      var f = flakes[i];
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(233, 238, 250, ' + f.opacity + ')';
+      ctx.fill();
+
+      if (!reduced) {
+        f.sway += f.swaySpeed;
+        f.y += f.speed;
+        f.x += f.drift + Math.sin(f.sway) * 0.3;
+      }
+
+      if (f.y > canvas.height + 5) {
+        f.y = -5;
+        f.x = Math.random() * canvas.width;
+      }
+      if (f.x > canvas.width + 5) f.x = -5;
+      if (f.x < -5) f.x = canvas.width + 5;
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+(function () {
+  var orb = document.getElementById('orb');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var tx = window.innerWidth / 2, ty = window.innerHeight / 2;
+  var x = tx, y = ty;
+  var active = false;
+
+  window.addEventListener('pointermove', function (e) {
+    tx = e.clientX;
+    ty = e.clientY;
+    if (!active) { active = true; orb.style.opacity = '1'; }
+  });
+  window.addEventListener('pointerleave', function () {
+    active = false;
+    orb.style.opacity = '0';
+  });
+
+  function tick() {
+    var ease = reduced ? 1 : 0.12;
+    x += (tx - x) * ease;
+    y += (ty - y) * ease;
+    orb.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+    requestAnimationFrame(tick);
+  }
+  tick();
+})();
+</script>
+
+</body>
+</html>
